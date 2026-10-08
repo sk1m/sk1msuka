@@ -1,0 +1,188 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>SK1MSUKA — одежда</title>
+  <meta name="description" content="SK1MSUKA — бренд уличной одежды. Футболки, худи, куртки, джинсы и аксессуары.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="header">
+  <div class="container header__inner">
+    <button class="icon-btn burger" id="burger" aria-label="Меню">☰</button>
+    <a href="#" class="logo">SK1MSUKA</a>
+    <nav class="nav" id="nav">
+      <a href="#shop">Магазин</a>
+      <a href="#about">О бренде</a>
+      <a href="#delivery">Доставка</a>
+      <a href="#contacts">Контакты</a>
+    </nav>
+    <button class="cart-btn" id="cartOpen" aria-label="Корзина">
+      Корзина <span class="cart-count" id="cartCount">0</span>
+    </button>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="hero__bg"></div>
+    <div class="container hero__content">
+      <p class="eyebrow">Новая коллекция · Осень 2026</p>
+      <h1>Носи то,<br>что говорит за тебя</h1>
+      <p class="hero__text">Уличная одежда без лишнего шума. Плотный хлопок, свободный крой, сделано, чтобы носить годами.</p>
+      <div class="hero__actions">
+        <a href="#shop" class="btn btn--light">Смотреть каталог</a>
+        <a href="#about" class="btn btn--ghost">О бренде</a>
+      </div>
+    </div>
+  </section>
+
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee__track">
+      <span>Бесплатная доставка от 5 000 ₽</span><span>·</span>
+      <span>Обмен и возврат 14 дней</span><span>·</span>
+      <span>Промокод SK1M10 — скидка 10%</span><span>·</span>
+      <span>Бесплатная доставка от 5 000 ₽</span><span>·</span>
+      <span>Обмен и возврат 14 дней</span><span>·</span>
+      <span>Промокод SK1M10 — скидка 10%</span><span>·</span>
+    </div>
+  </div>
+
+  <section class="section" id="shop">
+    <div class="container">
+      <div class="section__head">
+        <h2>Магазин</h2>
+        <div class="shop-controls">
+          <div class="filters" id="filters"></div>
+          <select id="sort" class="select" aria-label="Сортировка">
+            <option value="default">По умолчанию</option>
+            <option value="price-asc">Сначала дешевле</option>
+            <option value="price-desc">Сначала дороже</option>
+            <option value="name">По названию</option>
+          </select>
+        </div>
+      </div>
+      <div class="grid" id="grid"></div>
+    </div>
+  </section>
+
+  <section class="section section--alt" id="about">
+    <div class="container about">
+      <img class="about__img" src="https://images.unsplash.com/photo-1523381210434-271e8be1f52b?w=900&q=80" alt="Ателье бренда" loading="lazy" data-fallback="SK1MSUKA">
+      <div>
+        <p class="eyebrow eyebrow--dark">О бренде</p>
+        <h2>Простые вещи, сделанные честно</h2>
+        <p>SK1MSUKA — небольшой независимый бренд. Мы делаем базовые вещи с характером: плотные футболки, тёплые худи и куртки, которые не стыдно носить и через пять сезонов.</p>
+        <p>Мы шьём небольшими партиями, поэтому любимые модели заканчиваются быстро. Подпишись на рассылку, чтобы узнавать о дропах первым.</p>
+        <ul class="features">
+          <li><strong>100%</strong> хлопок</li>
+          <li><strong>14 дней</strong> на возврат</li>
+          <li><strong>1–5 дней</strong> доставка</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="delivery">
+    <div class="container">
+      <h2>Доставка и оплата</h2>
+      <div class="cards3">
+        <div class="info-card"><h3>Курьер</h3><p>По Москве и Санкт-Петербургу — 1–2 дня, 390 ₽. Бесплатно от 5 000 ₽.</p></div>
+        <div class="info-card"><h3>Пункты выдачи</h3><p>По всей России — 2–5 дней, 290 ₽. Бесплатно от 5 000 ₽.</p></div>
+        <div class="info-card"><h3>Оплата</h3><p>Картой онлайн или при получении. Примерка перед оплатой у курьера.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section section--dark" id="contacts">
+    <div class="container newsletter">
+      <div>
+        <h2>Будь в курсе дропов</h2>
+        <p>Новинки, закрытые распродажи и скидка 10% на первый заказ.</p>
+      </div>
+      <form class="newsletter__form" id="newsletter">
+        <input type="email" required placeholder="Твой e-mail" aria-label="E-mail">
+        <button class="btn btn--light" type="submit">Подписаться</button>
+      </form>
+    </div>
+  </section>
+</main>
+
+<footer class="footer">
+  <div class="container footer__inner">
+    <div>
+      <div class="logo">SK1MSUKA</div>
+      <p class="muted">© 2026 SK1MSUKA. Все права защищены.</p>
+    </div>
+    <div class="footer__links">
+      <a href="#shop">Магазин</a>
+      <a href="#delivery">Доставка</a>
+      <a href="mailto:hello@example.com">hello@example.com</a>
+      <a href="#" aria-label="Instagram">Instagram</a>
+      <a href="#" aria-label="Telegram">Telegram</a>
+    </div>
+  </div>
+</footer>
+
+<!-- Карточка товара -->
+<div class="overlay" id="overlay"></div>
+<div class="modal" id="productModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <button class="icon-btn modal__close" data-close aria-label="Закрыть">✕</button>
+  <div class="modal__body" id="productBody"></div>
+</div>
+
+<!-- Корзина -->
+<aside class="drawer" id="cart" aria-hidden="true">
+  <div class="drawer__head">
+    <h3>Корзина</h3>
+    <button class="icon-btn" data-close aria-label="Закрыть">✕</button>
+  </div>
+  <div class="drawer__items" id="cartItems"></div>
+  <div class="drawer__foot" id="cartFoot">
+    <form class="promo" id="promoForm">
+      <input id="promoInput" placeholder="Промокод" aria-label="Промокод">
+      <button class="btn btn--outline btn--sm" type="submit">Применить</button>
+    </form>
+    <div class="totals" id="totals"></div>
+    <button class="btn btn--dark btn--block" id="checkoutBtn">Оформить заказ</button>
+  </div>
+</aside>
+
+<!-- Оформление -->
+<div class="modal" id="checkoutModal" role="dialog" aria-modal="true" aria-hidden="true">
+  <button class="icon-btn modal__close" data-close aria-label="Закрыть">✕</button>
+  <div class="modal__body modal__body--narrow" id="checkoutBody">
+    <h3>Оформление заказа</h3>
+    <form id="checkoutForm" class="form" novalidate>
+      <label>Имя и фамилия<input name="name" required minlength="2"></label>
+      <label>Телефон<input name="phone" type="tel" required placeholder="+7 900 000-00-00" pattern="[\d\s\+\-\(\)]{10,}"></label>
+      <label>E-mail<input name="email" type="email" required></label>
+      <label>Способ доставки
+        <select name="delivery" class="select">
+          <option value="courier">Курьер — 390 ₽</option>
+          <option value="pickup">Пункт выдачи — 290 ₽</option>
+        </select>
+      </label>
+      <label>Адрес<input name="address" required minlength="5"></label>
+      <label>Оплата
+        <select name="payment" class="select">
+          <option>Картой онлайн</option>
+          <option>При получении</option>
+        </select>
+      </label>
+      <div class="totals" id="checkoutTotals"></div>
+      <button class="btn btn--dark btn--block" type="submit">Подтвердить заказ</button>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
