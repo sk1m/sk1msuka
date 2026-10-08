@@ -1,0 +1,645 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Мемоток</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Manrope:wght@500;700;800&display=swap">
+<style>
+/* Тёмный экран-телефон: вертикальная лента на весь экран, справа колонка действий, снизу навигация */
+:root {
+  --bg: #0b0b0f;
+  --surface: #17171e;
+  --line: #2a2a35;
+  --text: #f4f3f8;
+  --muted: #a3a1b0;
+  --hot: #fe2c55;
+  --cyan: #25f4ee;
+  --font-ui: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-meme: "Anton", Impact, "Arial Black", sans-serif;
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body {
+  background: var(--bg); color: var(--text); font-family: var(--font-ui); font-size: 15px;
+  overflow: hidden; -webkit-tap-highlight-color: transparent;
+}
+button { font: inherit; color: inherit; cursor: pointer; background: none; border: 0; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--cyan); outline-offset: 2px; }
+
+.app { position: relative; height: 100%; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; background: #000; }
+.screen { flex: 1; min-height: 0; position: relative; display: none; }
+.screen.is-active { display: block; }
+
+/* ---------- верхние вкладки ленты ---------- */
+.feed-tabs {
+  position: absolute; top: 0; left: 0; right: 0; z-index: 5; display: flex; justify-content: center; gap: 18px;
+  padding: 14px 16px 24px; background: linear-gradient(rgba(0,0,0,.55), transparent); pointer-events: none;
+}
+.feed-tabs button { pointer-events: auto; font-weight: 800; font-size: 16px; color: rgba(255,255,255,.6); padding: 4px 2px; border-bottom: 2px solid transparent; }
+.feed-tabs button.is-active { color: #fff; border-bottom-color: #fff; }
+
+/* ---------- лента ---------- */
+.feed { height: 100%; overflow-y: auto; scroll-snap-type: y mandatory; scrollbar-width: none; }
+.feed::-webkit-scrollbar { display: none; }
+.slide { position: relative; height: 100%; scroll-snap-align: start; scroll-snap-stop: always; overflow: hidden; }
+
+.scene {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: space-between;
+  padding: 70px 16px 150px; text-align: center; background: linear-gradient(160deg, var(--c1), var(--c2));
+}
+.scene::after { /* лёгкое зерно, чтобы сцена выглядела как кадр */
+  content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .08;
+  background-image: radial-gradient(#fff 1px, transparent 1px); background-size: 3px 3px;
+}
+.cap {
+  position: relative; z-index: 1; font-family: var(--font-meme); text-transform: uppercase; color: #fff; line-height: 1.05;
+  font-size: clamp(26px, 8vw, 40px); letter-spacing: .5px; max-width: 100%; overflow-wrap: anywhere;
+  text-shadow: 3px 3px 0 #000, -3px -3px 0 #000, 3px -3px 0 #000, -3px 3px 0 #000, 0 3px 0 #000, 3px 0 0 #000, 0 -3px 0 #000, -3px 0 0 #000;
+}
+.emo { position: relative; z-index: 1; font-size: clamp(90px, 32vw, 150px); line-height: 1; filter: drop-shadow(0 12px 18px rgba(0,0,0,.35)); }
+.emo span { display: inline-block; }
+
+/* анимации сцен — играют только на активном слайде */
+.slide:not(.is-playing) .emo span, .paused .emo span { animation-play-state: paused !important; }
+.a-bounce span { animation: bounce .7s ease-in-out infinite alternate; }
+.a-spin span { animation: spin 2.4s linear infinite; }
+.a-shake span { animation: shake .35s ease-in-out infinite; }
+.a-float span { animation: float 2.2s ease-in-out infinite; }
+.a-pulse span { animation: pulse .9s ease-in-out infinite; }
+.a-dance span { animation: dance .6s ease-in-out infinite alternate; }
+.a-dance span:nth-child(2n) { animation-delay: -.3s; }
+.a-fly span { animation: fly 3s linear infinite; }
+.a-zoom span { animation: zoom 1.6s cubic-bezier(.2,.8,.2,1) infinite; }
+.a-bounce span:nth-child(2) { animation-delay: -.35s; }
+@keyframes bounce { from { transform: translateY(0) } to { transform: translateY(-34px) } }
+@keyframes spin { to { transform: rotate(360deg) } }
+@keyframes shake { 0%,100% { transform: translateX(0) rotate(0) } 25% { transform: translateX(-8px) rotate(-6deg) } 75% { transform: translateX(8px) rotate(6deg) } }
+@keyframes float { 0%,100% { transform: translateY(0) rotate(-4deg) } 50% { transform: translateY(-18px) rotate(4deg) } }
+@keyframes pulse { 0%,100% { transform: scale(1) } 50% { transform: scale(1.18) } }
+@keyframes dance { from { transform: rotate(-14deg) translateY(0) } to { transform: rotate(14deg) translateY(-14px) } }
+@keyframes fly { 0% { transform: translateX(-60vw) } 100% { transform: translateX(60vw) } }
+@keyframes zoom { 0% { transform: scale(.4); opacity: 0 } 30% { transform: scale(1.1); opacity: 1 } 100% { transform: scale(1) } }
+@media (prefers-reduced-motion: reduce) { .emo span { animation: none !important; } }
+
+.slide video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; background: #000; }
+
+.pause-ico {
+  position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); z-index: 2; font-size: 64px; opacity: 0;
+  transition: opacity .2s; pointer-events: none; text-shadow: 0 4px 20px rgba(0,0,0,.6);
+}
+.paused .pause-ico { opacity: .85; }
+
+/* правая колонка действий */
+.rail { position: absolute; right: 8px; bottom: 120px; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.rail__ava {
+  width: 48px; height: 48px; border-radius: 50%; border: 2px solid #fff; display: grid; place-items: center;
+  background: var(--surface); font-size: 24px; position: relative;
+}
+.rail__ava::after { content: "+"; position: absolute; bottom: -9px; width: 20px; height: 20px; border-radius: 50%; background: var(--hot); font-size: 15px; line-height: 20px; font-weight: 800; text-align: center; }
+a.rbtn { color: inherit; text-decoration: none; }
+.rbtn { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; font-weight: 700; text-shadow: 0 1px 3px rgba(0,0,0,.7); }
+.rbtn b { font-size: 32px; line-height: 1; filter: drop-shadow(0 2px 4px rgba(0,0,0,.5)); transition: transform .15s; }
+.rbtn:active b { transform: scale(.85); }
+.rbtn.is-on[data-act="like"] b { animation: pop .35s; }
+@keyframes pop { 50% { transform: scale(1.35) } }
+.disc { width: 44px; height: 44px; border-radius: 50%; display: grid; place-items: center; font-size: 20px; background: radial-gradient(circle, #333 30%, #111 32%, #222 60%, #111 62%); animation: spin 4s linear infinite; }
+.slide:not(.is-playing) .disc, .paused .disc { animation-play-state: paused; }
+
+/* подпись снизу */
+.meta {
+  position: absolute; left: 0; right: 0; bottom: 0; z-index: 2; padding: 60px 76px 16px 14px;
+  background: linear-gradient(transparent, rgba(0,0,0,.75));
+}
+.meta__user { font-weight: 800; font-size: 16px; }
+.meta__user small { font-weight: 700; color: var(--muted); margin-left: 6px; }
+.meta__desc { margin: 6px 0; line-height: 1.35; font-size: 14px; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.meta__desc.is-open { -webkit-line-clamp: unset; }
+.meta__tags { color: #fff; font-weight: 800; font-size: 14px; }
+.meta__sound { margin-top: 8px; font-size: 13px; white-space: nowrap; overflow: hidden; }
+.meta__sound span { display: inline-block; padding-left: 100%; animation: marquee 9s linear infinite; }
+@keyframes marquee { to { transform: translateX(-100%) } }
+.progress { position: absolute; left: 0; bottom: 0; height: 2px; background: rgba(255,255,255,.85); width: 0; z-index: 3; }
+.slide.is-playing:not(.paused) .progress { animation: prog var(--dur, 8s) linear infinite; }
+@keyframes prog { to { width: 100% } }
+
+.heart-burst { position: absolute; z-index: 4; font-size: 90px; pointer-events: none; animation: burst .8s ease-out forwards; }
+@keyframes burst { 0% { transform: translate(-50%,-50%) scale(.3) rotate(-15deg); opacity: 0 } 25% { opacity: 1; transform: translate(-50%,-50%) scale(1.2) rotate(8deg) } 100% { transform: translate(-50%,-160%) scale(1); opacity: 0 } }
+
+.swipe-tip {
+  position: absolute; left: 50%; bottom: 36%; transform: translateX(-50%); z-index: 6; pointer-events: none;
+  background: rgba(0,0,0,.6); padding: 10px 16px; border-radius: 999px; font-weight: 800; white-space: nowrap;
+  animation: tip 2.4s ease-in-out 3 forwards;
+}
+@keyframes tip { 0%,100% { transform: translate(-50%, 0); opacity: 1 } 50% { transform: translate(-50%, -24px) } 99% { opacity: 1 } }
+
+/* ---------- кружки ---------- */
+.page { height: 100%; overflow-y: auto; padding: 18px 16px 24px; }
+.page h1 { font-size: 22px; margin: 0 0 4px; }
+.page .sub { color: var(--muted); margin: 0 0 16px; font-size: 14px; }
+.circles { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px 10px; }
+.circle-item { display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 12px; font-weight: 700; text-align: center; min-width: 0; }
+.circle-item span:last-child { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.circ {
+  width: 100%; max-width: 110px; aspect-ratio: 1; border-radius: 50%; overflow: hidden; position: relative;
+  display: grid; place-items: center; font-size: 44px; background: linear-gradient(160deg, var(--c1), var(--c2));
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 5px var(--hot);
+}
+.circ video { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.circ--add { background: var(--surface); box-shadow: 0 0 0 2px var(--line); font-size: 36px; }
+
+.circle-view {
+  position: fixed; inset: 0; z-index: 30; background: rgba(0,0,0,.88); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 18px; padding: 16px; text-align: center;
+}
+.circle-view[hidden] { display: none; }
+.big-circ { position: relative; width: min(78vw, 340px); aspect-ratio: 1; }
+.big-circ .circ { max-width: none; width: 100%; box-shadow: none; font-size: clamp(70px, 22vw, 120px); }
+.big-circ .circ .cap { position: absolute; bottom: 16%; font-size: clamp(18px, 5vw, 26px); padding: 0 12%; }
+.ring { position: absolute; inset: -8px; width: calc(100% + 16px); height: calc(100% + 16px); transform: rotate(-90deg); pointer-events: none; }
+.ring circle { fill: none; stroke: var(--cyan); stroke-width: 4; stroke-linecap: round; stroke-dasharray: 100; stroke-dashoffset: 100; }
+.circle-view.is-on .ring circle { animation: ring 6s linear infinite; }
+@keyframes ring { to { stroke-dashoffset: 0 } }
+.circle-view h3 { margin: 0; font-size: 18px; }
+.circle-view p { margin: 0; color: var(--muted); max-width: 34ch; }
+
+/* ---------- поиск и избранное ---------- */
+.search { width: 100%; padding: 12px 14px; border-radius: 12px; border: 1px solid var(--line); background: var(--surface); color: var(--text); font: inherit; }
+.chips { display: flex; gap: 8px; overflow-x: auto; padding: 12px 0; scrollbar-width: none; }
+.chip { flex: none; padding: 7px 14px; border-radius: 999px; background: var(--surface); border: 1px solid var(--line); font-weight: 700; font-size: 13px; }
+.chip.is-on { background: #fff; color: #000; border-color: #fff; }
+.grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4px; }
+.tile {
+  position: relative; aspect-ratio: 3 / 4; border-radius: 6px; overflow: hidden; display: flex; flex-direction: column;
+  justify-content: space-between; align-items: center; padding: 8px 4px; background: linear-gradient(160deg, var(--c1), var(--c2)); min-width: 0;
+}
+.tile .t-emo { font-size: 38px; margin-top: auto; margin-bottom: auto; }
+.tile .t-name { font-size: 11px; font-weight: 800; text-shadow: 0 1px 3px #000; text-align: center; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tile .t-year { position: absolute; top: 5px; left: 6px; font-size: 10px; font-weight: 800; background: rgba(0,0,0,.45); padding: 1px 6px; border-radius: 6px; }
+.empty { color: var(--muted); text-align: center; padding: 40px 10px; }
+
+/* ---------- нижняя навигация ---------- */
+.nav {
+  flex: none; display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; background: #000;
+  border-top: 1px solid #1d1d24; padding: 6px 4px calc(6px + env(safe-area-inset-bottom, 0px));
+}
+.nav button { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 11px; font-weight: 700; color: var(--muted); padding: 4px 0; }
+.nav button b { font-size: 21px; line-height: 1.1; filter: grayscale(1) brightness(1.4); }
+.nav button.is-active { color: #fff; }
+.nav button.is-active b { filter: none; }
+.nav .plus b {
+  width: 46px; height: 30px; border-radius: 9px; background: #fff; color: #000; display: grid; place-items: center; font-size: 22px; font-weight: 800; filter: none;
+  box-shadow: -4px 0 0 var(--cyan), 4px 0 0 var(--hot);
+}
+
+/* ---------- лист «добавить» и тост ---------- */
+.sheet { position: fixed; inset: 0; z-index: 40; background: rgba(0,0,0,.6); display: flex; align-items: flex-end; justify-content: center; }
+.sheet[hidden] { display: none; }
+.sheet__box {
+  width: 100%; max-width: 480px; background: var(--surface); border-radius: 18px 18px 0 0;
+  padding: 18px 16px calc(18px + env(safe-area-inset-bottom, 0px)); display: flex; flex-direction: column; gap: 10px; animation: up .25s ease;
+}
+@keyframes up { from { transform: translateY(100%) } }
+.sheet__box h3 { margin: 0 0 4px; }
+.sheet__box p { margin: 0 0 6px; color: var(--muted); font-size: 13px; }
+.sbtn { display: flex; align-items: center; gap: 12px; padding: 14px; border-radius: 12px; background: var(--bg); border: 1px solid var(--line); font-weight: 700; text-align: left; }
+.sbtn b { font-size: 24px; }
+.toast {
+  position: fixed; left: 50%; top: 70px; z-index: 50; transform: translate(-50%, -20px); opacity: 0; transition: .25s; pointer-events: none;
+  background: rgba(30,30,38,.95); padding: 10px 16px; border-radius: 999px; font-weight: 700; font-size: 14px; white-space: nowrap;
+}
+.toast.is-show { transform: translate(-50%, 0); opacity: 1; }
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- ЛЕНТА -->
+  <section class="screen is-active" id="s-feed">
+    <div class="feed-tabs" id="feedTabs">
+      <button data-mode="world">Мир</button>
+      <button data-mode="all" class="is-active">Для тебя</button>
+      <button data-mode="ru">Рунет</button>
+    </div>
+    <div class="feed" id="feed"></div>
+  </section>
+
+  <!-- КРУЖКИ -->
+  <section class="screen" id="s-circles">
+    <div class="page">
+      <h1>Кружки</h1>
+      <p class="sub">Мемы в формате кружочков. Нажми, чтобы посмотреть. Можно добавить свой.</p>
+      <div class="circles" id="circles"></div>
+    </div>
+  </section>
+
+  <!-- ПОИСК -->
+  <section class="screen" id="s-search">
+    <div class="page">
+      <input class="search" id="q" type="search" placeholder="Найти мем: доге, скибиди, ждун…" autocomplete="off">
+      <div class="chips" id="cats"></div>
+      <div class="grid" id="results"></div>
+    </div>
+  </section>
+
+  <!-- ИЗБРАННОЕ -->
+  <section class="screen" id="s-saved">
+    <div class="page">
+      <h1>Избранное</h1>
+      <p class="sub" id="savedInfo"></p>
+      <div class="grid" id="saved"></div>
+    </div>
+  </section>
+
+  <nav class="nav" id="nav">
+    <button data-screen="feed" class="is-active"><b>🏠</b>Главная</button>
+    <button data-screen="circles"><b>⭕</b>Кружки</button>
+    <button class="plus" id="plusBtn" aria-label="Добавить своё видео"><b>+</b></button>
+    <button data-screen="search"><b>🔍</b>Поиск</button>
+    <button data-screen="saved"><b>🔖</b>Избранное</button>
+  </nav>
+</div>
+
+<div class="circle-view" id="circleView" hidden></div>
+
+<div class="sheet" id="sheet" hidden>
+  <div class="sheet__box">
+    <h3>Добавить своё</h3>
+    <p>Видео остаётся только у тебя в браузере и пропадёт после перезагрузки страницы.</p>
+    <label class="sbtn"><b>🎬</b>Видео в ленту<input type="file" id="upFeed" accept="video/*" hidden></label>
+    <label class="sbtn"><b>⭕</b>Видео как кружок<input type="file" id="upCircle" accept="video/*" hidden></label>
+    <button class="sbtn" data-close-sheet><b>✕</b>Отмена</button>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+
+/* ============ МЕМЫ ============
+   cat: world — мировые, tt — тикток-тренды, ru — рунет, brainrot — итальянский брейнрот
+   anim: bounce | spin | shake | float | pulse | dance | fly | zoom                       */
+const MEMES = [
+  { id: 'rickroll', title: 'Рикролл', year: 2007, cat: 'world', emo: '🕺🎤', anim: 'dance', top: 'Never gonna', bottom: 'give you up',
+    desc: 'Кидаешь ссылку «на что-то важное», а там клип Рика Эстли 1987 года. Розыгрыш, которому почти 20 лет и который до сих пор работает.',
+    tags: ['рикролл', 'классика'], sound: 'Rick Astley — Never Gonna Give You Up', q: 'rickroll' },
+  { id: 'trollface', title: 'Троллфейс', year: 2008, cat: 'world', emo: '😏', anim: 'pulse', top: '', bottom: 'Problem?',
+    desc: 'Ухмылка, нарисованная в Paint. Лицо всех интернет-троллей конца нулевых.', tags: ['троллинг', 'рейджкомиксы'], sound: 'оригинальный звук', q: 'trollface' },
+  { id: 'nyan', title: 'Nyan Cat', year: 2011, cat: 'world', emo: '🌈🐱', anim: 'fly', top: 'Nyan nyan', bottom: 'nyan nyan',
+    desc: 'Пиксельный кот с телом из печенья летит по космосу и оставляет радугу. Под бесконечную японскую песенку.', tags: ['nyancat', 'пиксели'], sound: 'Nyan Cat — оригинальная мелодия', q: 'nyan cat' },
+  { id: 'gangnam', title: 'Gangnam Style', year: 2012, cat: 'world', emo: '🐎🕶️', anim: 'dance', top: 'Oppa', bottom: 'Gangnam Style',
+    desc: 'PSY и танец «на невидимой лошади». Первый клип на YouTube, набравший миллиард просмотров.', tags: ['psy', 'танец'], sound: 'PSY — Gangnam Style', q: 'gangnam style' },
+  { id: 'doge', title: 'Doge', year: 2013, cat: 'world', emo: '🐕', anim: 'float', top: 'such wow', bottom: 'much meme',
+    desc: 'Сиба-ину Кабосу с косым взглядом и подписи цветным Comic Sans. Из мема потом вырос даже Dogecoin.', tags: ['doge', 'сиба'], sound: 'оригинальный звук', q: 'doge meme' },
+  { id: 'harlem', title: 'Harlem Shake', year: 2013, cat: 'world', emo: '🪖💥🕺', anim: 'shake', top: 'Con los terroristas', bottom: '',
+    desc: 'Один человек в шлеме танцует, все остальные спокойны. Бит падает, и все в кадре сходят с ума.', tags: ['harlemshake', 'челлендж'], sound: 'Baauer — Harlem Shake', q: 'harlem shake' },
+  { id: 'fine', title: 'This is fine', year: 2013, cat: 'world', emo: '🔥🐶☕', anim: 'pulse', top: 'This is fine', bottom: '',
+    desc: 'Пёс в шляпе пьёт кофе в горящей комнате и говорит, что всё нормально. Лучшая иллюстрация понедельника.', tags: ['всёнормально', 'комикс'], sound: 'оригинальный звук', q: 'this is fine meme' },
+  { id: 'icebucket', title: 'Ice Bucket Challenge', year: 2014, cat: 'world', emo: '🪣🧊🥶', anim: 'shake', top: 'Я принимаю', bottom: 'вызов!',
+    desc: 'Выливаешь на себя ведро ледяной воды и передаёшь вызов друзьям. Флешмоб собрал деньги на борьбу с БАС.', tags: ['icebucketchallenge', 'челлендж'], sound: 'оригинальный звук', q: 'ice bucket challenge' },
+  { id: 'stonks', title: 'Stonks', year: 2017, cat: 'world', emo: '📈🧑‍💼', anim: 'zoom', top: '', bottom: 'Stonks',
+    desc: '3D-бизнесмен на фоне графика. Пишется с ошибкой специально: так подписывают «гениальные» финансовые решения.', tags: ['stonks', 'деньги'], sound: 'оригинальный звук', q: 'stonks meme' },
+  { id: 'distracted', title: 'Отвлечённый парень', year: 2017, cat: 'world', emo: '🚶‍♂️👀💃', anim: 'shake', top: 'Я', bottom: 'новая идея',
+    desc: 'Стоковое фото: парень оборачивается на другую девушку, а его девушка в шоке. Подходит под любой выбор в жизни.', tags: ['distractedboyfriend', 'сток'], sound: 'оригинальный звук', q: 'distracted boyfriend meme' },
+  { id: 'catyell', title: 'Женщина кричит на кота', year: 2019, cat: 'world', emo: '😫👉😾🥗', anim: 'shake', top: 'Ты съел мой салат!', bottom: 'Я не люблю овощи',
+    desc: 'Кадр из реалити-шоу плюс кот Смадж за столом с тарелкой. Две случайные картинки стали одним мемом.', tags: ['кот', 'смадж'], sound: 'оригинальный звук', q: 'woman yelling at cat' },
+  { id: 'coffin', title: 'Coffin Dance', year: 2020, cat: 'world', emo: '⚰️🕺🕺', anim: 'dance', top: '', bottom: 'Astronomia',
+    desc: 'Ганские носильщики гробов танцуют под электронику. В 2020-м их приклеивали в конец любого фейла.', tags: ['coffindance', 'astronomia'], sound: 'Tony Igy — Astronomia', q: 'coffin dance' },
+  { id: 'sus', title: 'Sus', year: 2020, cat: 'world', emo: '📮🔪', anim: 'float', top: 'Красный', bottom: 'какой-то сус',
+    desc: 'Из игры Among Us. «Сус» — тот, кто ведёт себя подозрительно. Слово прижилось и вне игры.', tags: ['amongus', 'сус'], sound: 'Among Us — звук голосования', q: 'among us sus' },
+  { id: 'ohno', title: 'Oh No', year: 2020, cat: 'tt', emo: '😱', anim: 'zoom', top: 'Oh no, oh no,', bottom: 'oh no no no no',
+    desc: 'Под этот звук в TikTok выкладывали момент за секунду до падения, фейла или катастрофы.', tags: ['ohno', 'фейлы'], sound: 'Capone — Oh No', q: 'oh no oh no no no' },
+  { id: 'bernie', title: 'Берни в варежках', year: 2021, cat: 'world', emo: '🧤🪑🧓', anim: 'float', top: 'Я на любой', bottom: 'вечеринке',
+    desc: 'Сенатор Берни Сандерс на инаугурации сидит на стуле в огромных варежках. Его вставляли во все фото мира.', tags: ['берни', 'варежки'], sound: 'оригинальный звук', q: 'bernie mittens' },
+  { id: 'gigachad', title: 'Гигачад', year: 2021, cat: 'world', emo: '🗿', anim: 'zoom', top: 'Average', bottom: 'enjoyer',
+    desc: 'Чёрно-белое фото с идеальной челюстью. Им отвечают, когда спокойно и уверенно согласны с чем-то.', tags: ['гигачад', 'сигма'], sound: 'Can You Feel My Heart (slowed)', q: 'gigachad' },
+  { id: 'bing', title: 'Bing Chilling', year: 2021, cat: 'world', emo: '🍦😎', anim: 'pulse', top: 'Zǎo shang hǎo', bottom: 'bing chilling',
+    desc: 'Джон Сина с мороженым по-китайски объявляет «бинчилинь». Звучит как «bing chilling» и стало мемом.', tags: ['джонсина', 'мороженое'], sound: 'оригинальный звук', q: 'bing chilling' },
+  { id: 'corn', title: 'It\'s corn!', year: 2022, cat: 'tt', emo: '🌽👦', anim: 'bounce', top: 'It\'s corn!', bottom: 'A big lump with knobs',
+    desc: 'Мальчик в интервью рассказывает, как любит кукурузу. Из ролика сделали песню, которая стала гимном лета.', tags: ['corn', 'кукуруза'], sound: 'It\'s Corn (remix)', q: 'its corn kid' },
+  { id: 'sideeye', title: 'Bombastic side eye', year: 2022, cat: 'tt', emo: '👀', anim: 'shake', top: 'Bombastic', bottom: 'side eye',
+    desc: '«Бомбический косой взгляд, криминальный оскорбительный косой взгляд». Звук для реакций на странные заявления.', tags: ['sideeye', 'реакция'], sound: 'bombastic side eye — оригинальный звук', q: 'bombastic side eye' },
+  { id: 'wednesday', title: 'Танец Уэнсдей', year: 2022, cat: 'tt', emo: '🖤💃', anim: 'dance', top: '', bottom: 'Bloody Mary (sped up)',
+    desc: 'Дерзкий танец из сериала. TikTok повторил его под ускоренную песню Леди Гаги, которой в сцене даже не было.', tags: ['wednesday', 'танец'], sound: 'Lady Gaga — Bloody Mary (sped up)', q: 'wednesday dance' },
+  { id: 'grimace', title: 'Grimace Shake', year: 2023, cat: 'tt', emo: '🟣🥤', anim: 'shake', top: 'Happy birthday', bottom: 'Grimace!',
+    desc: 'Пробуешь фиолетовый коктейль из McDonald\'s, а в следующем кадре ты лежишь «без сознания» в фиолетовой жиже. Мини-хоррор.', tags: ['grimaceshake', 'тренд'], sound: 'оригинальный звук', q: 'grimace shake' },
+  { id: 'skibidi', title: 'Skibidi Toilet', year: 2023, cat: 'tt', emo: '🚽🗣️', anim: 'bounce', top: 'Skibidi dop', bottom: 'dop yes yes',
+    desc: 'Головы поют из унитазов и воюют с камерами-людьми. Короткий сериал, который захватил всех школьников планеты.', tags: ['skibidi', 'брейнрот'], sound: 'Dom Dom Yes Yes (remix)', q: 'skibidi toilet' },
+  { id: 'chipi', title: 'Chipi Chipi Chapa Chapa', year: 2023, cat: 'tt', emo: '🐱🎶', anim: 'dance', top: 'Chipi chipi', bottom: 'chapa chapa',
+    desc: 'Кот подпрыгивает под весёлую песенку. Его вставляют в любые истории как «пересказ событий котами».', tags: ['chipichipi', 'коты'], sound: 'Chipi Chipi Chapa Chapa', q: 'chipi chipi chapa chapa' },
+  { id: 'rizz', title: 'Rizz', year: 2023, cat: 'tt', emo: '😎✨', anim: 'pulse', top: 'У него', bottom: 'нереальный rizz',
+    desc: 'Сленг для «умения очаровывать». Оксфордский словарь назвал его словом 2023 года.', tags: ['rizz', 'сленг'], sound: 'оригинальный звук', q: 'rizz' },
+  { id: 'moodeng', title: 'Му Денг', year: 2024, cat: 'tt', emo: '🦛', anim: 'bounce', top: 'Не трогайте', bottom: 'меня',
+    desc: 'Карликовый бегемотик из тайского зоопарка, который всё время недоволен и кусается. Стал любимцем интернета.', tags: ['moodeng', 'бегемот'], sound: 'оригинальный звук', q: 'moo deng' },
+  { id: 'demure', title: 'Very demure', year: 2024, cat: 'tt', emo: '💅', anim: 'float', top: 'Very demure,', bottom: 'very mindful',
+    desc: '«Очень скромно, очень осознанно». Описываешь так любое своё действие, даже самое неосознанное.', tags: ['demure', 'сленг'], sound: 'оригинальный звук', q: 'very demure very mindful' },
+  { id: 'tralalero', title: 'Tralalero Tralala', year: 2025, cat: 'brainrot', emo: '🦈👟', anim: 'bounce', top: 'Tralalero', bottom: 'tralala',
+    desc: 'Акула в трёх кроссовках Nike. Открыла волну «итальянского брейнрота»: нейросетевые существа с итальянскими именами.', tags: ['italianbrainrot', 'брейнрот'], sound: 'Tralalero Tralala — озвучка', q: 'tralalero tralala' },
+  { id: 'tung', title: 'Tung Tung Tung Sahur', year: 2025, cat: 'brainrot', emo: '🪵🏏', anim: 'shake', top: 'Tung tung tung', bottom: 'sahur',
+    desc: 'Деревянный человечек с битой, который будит на сахур. Самый жуткий и самый популярный персонаж брейнрота.', tags: ['tungtungtung', 'брейнрот'], sound: 'Tung Tung Tung Sahur — озвучка', q: 'tung tung tung sahur' },
+  { id: 'bombardiro', title: 'Bombardiro Crocodilo', year: 2025, cat: 'brainrot', emo: '🐊✈️', anim: 'fly', top: 'Bombardiro', bottom: 'crocodilo',
+    desc: 'Крокодил-бомбардировщик из той же вселенной итальянского брейнрота. Озвучка с драматичным итальянским акцентом.', tags: ['bombardiro', 'брейнрот'], sound: 'Bombardiro Crocodilo — озвучка', q: 'bombardiro crocodilo' },
+  { id: 'labubu', title: 'Лабубу', year: 2025, cat: 'tt', emo: '🧸', anim: 'float', top: 'Достала', bottom: 'Лабубу!',
+    desc: 'Зубастая плюшевая зверушка в коробках-сюрпризах. За ней стояли очереди, и её вешали на сумки по всему миру.', tags: ['labubu', 'распаковка'], sound: 'оригинальный звук', q: 'labubu' },
+  { id: 'sixseven', title: '6-7', year: 2025, cat: 'tt', emo: '🤷‍♂️', anim: 'dance', top: 'Six', bottom: 'seveeen',
+    desc: 'Говоришь «шесть-семь» и качаешь руками вверх-вниз. Смысла нет, и в этом весь смысл. Школьники кричат это на уроках.', tags: ['67', 'сленг'], sound: 'Skrilla — Doot Doot (6 7)', q: '6 7 meme' },
+  { id: 'yuy', title: 'Ъуъ съука', year: 2014, cat: 'ru', emo: '😼', anim: 'shake', top: 'Ъуъ', bottom: 'съука',
+    desc: 'Злобный кот с подписью на «кошачьем» языке. Одна из главных реакций рунета середины 2010-х.', tags: ['ъуъ', 'кот'], sound: 'оригинальный звук', q: 'ъуъ съука' },
+  { id: 'shlepa', title: 'Большой Шлёпа', year: 2016, cat: 'ru', emo: '🐈', anim: 'float', top: 'Шлёпа', bottom: 'пришёл',
+    desc: 'Каракал Пумба с огромными ушами и серьёзным лицом. Рунет прозвал его Шлёпой и сделал одним из главных котов интернета.', tags: ['шлёпа', 'каракал'], sound: 'оригинальный звук', q: 'большой шлепа' },
+  { id: 'zhdun', title: 'Ждун', year: 2017, cat: 'ru', emo: '🫠', anim: 'float', top: 'Когда ждёшь', bottom: 'пятницу',
+    desc: 'Серое существо-скульптура голландской художницы. В оригинале оно ждёт результатов анализов, а в рунете — чего угодно.', tags: ['ждун', 'ожидание'], sound: 'оригинальный звук', q: 'ждун' },
+  { id: 'sdelal', title: 'Я сделяль', year: 2018, cat: 'ru', emo: '🙋‍♂️', anim: 'bounce', top: '', bottom: 'Я сделяль',
+    desc: 'Гордое «я сделяль» подписывают под любым сомнительным достижением: от починки крана скотчем до сданной сессии.', tags: ['ясделяль', 'реакция'], sound: 'оригинальный звук', q: 'я сделяль' },
+  { id: 'okak', title: 'Окак', year: 2023, cat: 'ru', emo: '😯', anim: 'zoom', top: '', bottom: 'Окак',
+    desc: 'Короткое удивлённое «о, как» слитно. Универсальный ответ, когда сказать нечего, а ответить надо.', tags: ['окак', 'реакция'], sound: 'оригинальный звук', q: 'окак мем' },
+  { id: 'sigmaboy', title: 'Сигма бой', year: 2024, cat: 'ru', emo: '🎤👧👧', anim: 'dance', top: 'Сигма', bottom: 'сигма бой',
+    desc: 'Песня двух девочек-подростков из России, которая разлетелась по TikTok всего мира. Её пели даже те, кто не знает русский.', tags: ['сигмабой', 'песня'], sound: 'Betsy & Мария Янковская — Сигма бой', q: 'сигма бой' },
+];
+
+const PALETTES = [['#ff6a88', '#ff99ac'], ['#5f2c82', '#49a09d'], ['#f7971e', '#ffd200'], ['#00c6ff', '#0072ff'],
+  ['#c94b4b', '#4b134f'], ['#11998e', '#38ef7d'], ['#fc466b', '#3f5efb'], ['#8e2de2', '#4a00e0'], ['#f12711', '#f5af19'],
+  ['#1d976c', '#93f9b9'], ['#ee0979', '#ff6a00'], ['#3a1c71', '#d76d77']];
+MEMES.forEach((m, i) => { m.pal = PALETTES[i % PALETTES.length]; m.dur = 6 + (i % 5); });
+
+const CATS = { all: 'Все', tt: 'TikTok', world: 'Мировые', ru: 'Рунет', brainrot: 'Брейнрот', old: 'До 2015', new: '2023+' };
+const CAT_AVA = { world: '🌍', tt: '🎵', ru: '🐻', brainrot: '🧠', mine: '🙂' };
+const CAT_USER = { world: '@internet_legends', tt: '@tiktok_trends', ru: '@runet_memes', brainrot: '@italian_brainrot', mine: '@ты' };
+
+/* ============ СОСТОЯНИЕ ============ */
+const KEY = 'memetok_v1';
+const store = (() => { try { return JSON.parse(localStorage.getItem(KEY)) || {}; } catch (e) { return {}; } })();
+const state = { likes: new Set(store.likes || []), saved: new Set(store.saved || []), mode: 'all', cat: 'all', q: '', uploads: [], circleUploads: [] };
+function persist() {
+  try { localStorage.setItem(KEY, JSON.stringify({ likes: [...state.likes], saved: [...state.saved], tipSeen: true })); } catch (e) { /* без сохранения */ }
+}
+
+/* ============ УТИЛИТЫ ============ */
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const emoSpans = e => [...new Intl.Segmenter(undefined, { granularity: 'grapheme' }).segment(e)].map(s => `<span>${s.segment}</span>`).join('');
+const byId = Object.fromEntries(MEMES.map(m => [m.id, m]));
+let toastT;
+function toast(t) { const el = $('#toast'); el.textContent = t; el.classList.add('is-show'); clearTimeout(toastT); toastT = setTimeout(() => el.classList.remove('is-show'), 1700); }
+const ttSearch = q => `https://www.tiktok.com/search?q=${encodeURIComponent(q)}`;
+
+/* ============ ЛЕНТА ============ */
+function feedItems() {
+  // свои видео сверху, дальше мемы; «Для тебя» перемешивает порядок
+  let list = MEMES.filter(m => state.mode === 'all' || (state.mode === 'ru' ? m.cat === 'ru' : m.cat !== 'ru'));
+  if (state.mode === 'all') list = shuffled(list);
+  return [...state.uploads, ...list];
+}
+let shuffleSeed = Math.floor(Math.random() * 1e9);
+function shuffled(arr) {
+  let s = shuffleSeed; const rnd = () => ((s = (s * 1103515245 + 12345) % 2147483648) / 2147483648);
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
+}
+
+function slideHtml(m) {
+  const liked = state.likes.has(m.id), saved = state.saved.has(m.id);
+  const media = m.video
+    ? `<video src="${m.video}" loop playsinline muted></video>`
+    : `<div class="scene" style="--c1:${m.pal[0]};--c2:${m.pal[1]}">
+         <div class="cap">${esc(m.top)}</div>
+         <div class="emo a-${m.anim}">${emoSpans(m.emo)}</div>
+         <div class="cap">${esc(m.bottom)}</div>
+       </div>`;
+  return `<article class="slide" data-id="${m.id}" style="--dur:${m.dur || 8}s">
+    ${media}
+    <div class="pause-ico">▶</div>
+    <div class="rail">
+      <div class="rail__ava">${CAT_AVA[m.cat] || '🙂'}</div>
+      <button class="rbtn ${liked ? 'is-on' : ''}" data-act="like" aria-label="Лайк"><b>${liked ? '❤️' : '🤍'}</b>${liked ? 'Твой' : 'Лайк'}</button>
+      <button class="rbtn ${saved ? 'is-on' : ''}" data-act="save" aria-label="В избранное"><b>${saved ? '🔖' : '📑'}</b>${saved ? 'Сохранено' : 'Сохранить'}</button>
+      <button class="rbtn" data-act="share" aria-label="Поделиться"><b>↪️</b>Поделиться</button>
+      ${m.q ? `<a class="rbtn" href="${ttSearch(m.q)}" target="_blank" rel="noopener" aria-label="Найти оригинал в TikTok"><b>🔍</b>Оригинал</a>` : ''}
+      <div class="disc">${m.emo ? [...new Intl.Segmenter().segment(m.emo)][0].segment : '🎵'}</div>
+    </div>
+    <div class="meta">
+      <div class="meta__user">${CAT_USER[m.cat] || '@ты'}<small>· ${m.year || 'сейчас'}</small></div>
+      <div class="meta__desc" data-act="more"><b>${esc(m.title)}.</b> ${esc(m.desc)}</div>
+      <div class="meta__tags">${(m.tags || []).map(t => `#${esc(t)}`).join(' ')}</div>
+      <div class="meta__sound"><span>♫ ${esc(m.sound || 'оригинальный звук')}</span></div>
+    </div>
+    <div class="progress"></div>
+  </article>`;
+}
+
+const feed = $('#feed');
+let observer;
+function renderFeed(keepId) {
+  feed.innerHTML = feedItems().map(slideHtml).join('');
+  observer?.disconnect();
+  observer = new IntersectionObserver(entries => entries.forEach(e => setPlaying(e.target, e.isIntersecting)), { root: feed, threshold: .6 });
+  feed.querySelectorAll('.slide').forEach(s => observer.observe(s));
+  if (keepId) feed.querySelector(`[data-id="${keepId}"]`)?.scrollIntoView();
+  else feed.scrollTop = 0;
+}
+function setPlaying(slide, on) {
+  slide.classList.toggle('is-playing', on);
+  if (!on) slide.classList.remove('paused');
+  const v = slide.querySelector('video');
+  if (v) on ? v.play().catch(() => {}) : v.pause();
+}
+
+// тап — пауза, двойной тап — лайк с сердечком
+let lastTap = 0, tapTimer;
+feed.addEventListener('click', e => {
+  const slide = e.target.closest('.slide');
+  if (!slide) return;
+  const act = e.target.closest('[data-act]')?.dataset.act;
+  if (e.target.closest('a')) return;
+  if (act) { handleAct(act, slide, e.target.closest('[data-act]')); return; }
+  const now = Date.now();
+  if (now - lastTap < 300) {
+    clearTimeout(tapTimer);
+    burst(slide, e);
+    if (!state.likes.has(slide.dataset.id)) handleAct('like', slide, slide.querySelector('[data-act="like"]'));
+  } else {
+    tapTimer = setTimeout(() => togglePause(slide), 300);
+  }
+  lastTap = now;
+});
+function togglePause(slide) {
+  slide.classList.toggle('paused');
+  const v = slide.querySelector('video');
+  if (v) slide.classList.contains('paused') ? v.pause() : v.play().catch(() => {});
+}
+function burst(slide, e) {
+  const r = slide.getBoundingClientRect();
+  const h = document.createElement('div');
+  h.className = 'heart-burst'; h.textContent = '❤️';
+  h.style.left = `${e.clientX - r.left}px`; h.style.top = `${e.clientY - r.top}px`;
+  slide.appendChild(h);
+  setTimeout(() => h.remove(), 800);
+}
+
+function handleAct(act, slide, btn) {
+  const id = slide.dataset.id;
+  const m = byId[id] || state.uploads.find(u => u.id === id);
+  if (act === 'like') {
+    const on = !state.likes.has(id);
+    on ? state.likes.add(id) : state.likes.delete(id);
+    btn.classList.toggle('is-on', on);
+    btn.innerHTML = `<b>${on ? '❤️' : '🤍'}</b>${on ? 'Твой' : 'Лайк'}`;
+    persist();
+  }
+  if (act === 'save') {
+    const on = !state.saved.has(id);
+    on ? state.saved.add(id) : state.saved.delete(id);
+    btn.classList.toggle('is-on', on);
+    btn.innerHTML = `<b>${on ? '🔖' : '📑'}</b>${on ? 'Сохранено' : 'Сохранить'}`;
+    persist();
+    toast(on ? 'Добавлено в избранное' : 'Убрано из избранного');
+  }
+  if (act === 'share') share(m);
+  if (act === 'more') slide.querySelector('.meta__desc').classList.toggle('is-open');
+}
+function share(m) {
+  const text = m.q ? `${m.title} (${m.year}) — ${m.desc} Смотреть: ${ttSearch(m.q)}` : m.title;
+  try {
+    navigator.clipboard.writeText(text).then(() => toast('Скопировано, кидай друзьям'), () => toast('Не получилось скопировать'));
+  } catch (e) { toast('Не получилось скопировать'); }
+}
+
+$('#feedTabs').addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (!b) return;
+  state.mode = b.dataset.mode;
+  document.querySelectorAll('#feedTabs button').forEach(x => x.classList.toggle('is-active', x === b));
+  shuffleSeed = Math.floor(Math.random() * 1e9);
+  renderFeed();
+});
+
+document.addEventListener('keydown', e => {
+  if (!$('#s-feed').classList.contains('is-active') || e.target.matches('input')) return;
+  if (e.key === 'ArrowDown') { e.preventDefault(); feed.scrollBy({ top: feed.clientHeight, behavior: 'smooth' }); }
+  if (e.key === 'ArrowUp') { e.preventDefault(); feed.scrollBy({ top: -feed.clientHeight, behavior: 'smooth' }); }
+  if (e.key === ' ') { e.preventDefault(); const s = feed.querySelector('.slide.is-playing'); if (s) togglePause(s); }
+});
+
+/* ============ КРУЖКИ ============ */
+function renderCircles() {
+  const items = [
+    ...state.circleUploads.map(u => `<button class="circle-item" data-circle="${u.id}"><span class="circ"><video src="${u.video}" muted loop playsinline autoplay></video></span><span>Мой кружок</span></button>`),
+    ...MEMES.map(m => `<button class="circle-item" data-circle="${m.id}"><span class="circ" style="--c1:${m.pal[0]};--c2:${m.pal[1]}">${esc([...new Intl.Segmenter().segment(m.emo)][0].segment)}</span><span>${esc(m.title)}</span></button>`),
+  ];
+  $('#circles').innerHTML = `<label class="circle-item"><span class="circ circ--add">＋</span><span>Добавить</span><input type="file" accept="video/*" hidden data-up="circle"></label>` + items.join('');
+}
+$('#circles').addEventListener('click', e => {
+  const b = e.target.closest('[data-circle]');
+  if (b) openCircle(b.dataset.circle);
+});
+function openCircle(id) {
+  const m = byId[id];
+  const u = state.circleUploads.find(x => x.id === id);
+  const inner = u
+    ? `<span class="circ"><video src="${u.video}" autoplay loop playsinline controls></video></span>`
+    : `<span class="circ" style="--c1:${m.pal[0]};--c2:${m.pal[1]}"><span class="emo a-${m.anim}" style="font-size:inherit">${emoSpans(m.emo)}</span><span class="cap">${esc(m.bottom || m.top)}</span></span>`;
+  const v = $('#circleView');
+  v.innerHTML = `<div class="big-circ">${inner}<svg class="ring" viewBox="0 0 36 36"><circle cx="18" cy="18" r="16" pathLength="100"/></svg></div>
+    <h3>${u ? 'Мой кружок' : esc(m.title) + ' · ' + m.year}</h3>
+    ${u ? '' : `<p>${esc(m.desc)}</p>`}
+    <p style="font-size:12px">Нажми в любом месте, чтобы закрыть</p>`;
+  v.hidden = false;
+  v.classList.add('is-on');
+  // в кружке анимация всегда играет
+  v.querySelectorAll('.emo span').forEach(s => (s.style.animationPlayState = 'running'));
+}
+$('#circleView').addEventListener('click', e => {
+  if (e.target.closest('video')) return;
+  const v = $('#circleView'); v.hidden = true; v.classList.remove('is-on'); v.innerHTML = '';
+});
+
+/* ============ ПОИСК ============ */
+function tileHtml(m) {
+  return `<button class="tile" data-open="${m.id}" style="--c1:${m.pal[0]};--c2:${m.pal[1]}">
+    <span class="t-year">${m.year}</span><span class="t-emo">${esc(m.emo)}</span><span class="t-name">${esc(m.title)}</span></button>`;
+}
+function matchCat(m, c) {
+  if (c === 'all') return true;
+  if (c === 'old') return m.year < 2015;
+  if (c === 'new') return m.year >= 2023;
+  return m.cat === c || (c === 'tt' && m.cat === 'brainrot');
+}
+function renderSearch() {
+  $('#cats').innerHTML = Object.entries(CATS).map(([k, v]) => `<button class="chip ${state.cat === k ? 'is-on' : ''}" data-cat="${k}">${v}</button>`).join('');
+  const q = state.q.trim().toLowerCase();
+  const res = MEMES.filter(m => matchCat(m, state.cat) &&
+    (!q || [m.title, m.desc, m.top, m.bottom, ...(m.tags || [])].join(' ').toLowerCase().includes(q)))
+    .sort((a, b) => a.year - b.year);
+  $('#results').innerHTML = res.length ? res.map(tileHtml).join('') : '<p class="empty" style="grid-column:1/-1">Ничего не нашлось. Попробуй другое слово.</p>';
+}
+$('#q').addEventListener('input', e => { state.q = e.target.value; renderSearch(); });
+$('#cats').addEventListener('click', e => { const c = e.target.closest('[data-cat]'); if (c) { state.cat = c.dataset.cat; renderSearch(); } });
+
+/* ============ ИЗБРАННОЕ ============ */
+function renderSaved() {
+  const list = MEMES.filter(m => state.saved.has(m.id));
+  $('#savedInfo').textContent = `Сохранено: ${list.length} · лайков: ${[...state.likes].filter(id => byId[id]).length}`;
+  $('#saved').innerHTML = list.length ? list.map(tileHtml).join('') : '<p class="empty" style="grid-column:1/-1">Тут пусто. Жми 📑 на любом меме, чтобы сохранить.</p>';
+}
+
+// открыть мем в ленте из поиска или избранного
+document.addEventListener('click', e => {
+  const t = e.target.closest('[data-open]');
+  if (!t) return;
+  state.mode = 'all';
+  document.querySelectorAll('#feedTabs button').forEach(x => x.classList.toggle('is-active', x.dataset.mode === 'all'));
+  show('feed');
+  renderFeed(t.dataset.open);
+});
+
+/* ============ НАВИГАЦИЯ ============ */
+function show(name) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.toggle('is-active', s.id === `s-${name}`));
+  document.querySelectorAll('#nav [data-screen]').forEach(b => b.classList.toggle('is-active', b.dataset.screen === name));
+  if (name !== 'feed') feed.querySelectorAll('.slide').forEach(s => setPlaying(s, false));
+  if (name === 'circles') renderCircles();
+  if (name === 'search') renderSearch();
+  if (name === 'saved') renderSaved();
+}
+$('#nav').addEventListener('click', e => {
+  const b = e.target.closest('[data-screen]');
+  if (!b) return;
+  show(b.dataset.screen);
+  if (b.dataset.screen === 'feed') renderFeed(feed.querySelector('.slide.is-playing')?.dataset.id);
+});
+
+/* ============ ЗАГРУЗКА СВОИХ ВИДЕО ============ */
+const sheet = $('#sheet');
+$('#plusBtn').addEventListener('click', () => { sheet.hidden = false; });
+sheet.addEventListener('click', e => { if (e.target === sheet || e.target.closest('[data-close-sheet]')) sheet.hidden = true; });
+let upSeq = 0;
+function addVideo(file, asCircle) {
+  if (!file || !file.type.startsWith('video/')) { toast('Нужен видеофайл'); return; }
+  const item = { id: `up${++upSeq}`, video: URL.createObjectURL(file), cat: 'mine', title: file.name.replace(/\.[^.]+$/, ''),
+    desc: 'Твоё видео. Оно видно только тебе.', tags: ['моё'], sound: 'оригинальный звук', dur: 10 };
+  sheet.hidden = true;
+  if (asCircle) { state.circleUploads.unshift(item); show('circles'); toast('Кружок добавлен'); }
+  else { state.uploads.unshift(item); show('feed'); renderFeed(item.id); toast('Видео добавлено в ленту'); }
+}
+$('#upFeed').addEventListener('change', e => { addVideo(e.target.files[0], false); e.target.value = ''; });
+$('#upCircle').addEventListener('change', e => { addVideo(e.target.files[0], true); e.target.value = ''; });
+document.addEventListener('change', e => { if (e.target.dataset.up === 'circle') { addVideo(e.target.files[0], true); e.target.value = ''; } });
+
+/* ============ СТАРТ ============ */
+renderFeed();
+if (!store.tipSeen) {
+  const tip = document.createElement('div');
+  tip.className = 'swipe-tip';
+  tip.textContent = '👆 Листай вверх · двойной тап — лайк';
+  $('#s-feed').appendChild(tip);
+  setTimeout(() => tip.remove(), 7500);
+  persist();
+}
+</script>
+</body>
+</html>
