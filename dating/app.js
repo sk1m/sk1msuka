@@ -287,6 +287,20 @@ function renderFeed() {
       <div class="stamp stamp--yes">ДА</div><div class="stamp stamp--no">НЕТ</div>
     </article>`;
   enableSwipe($('#topCard'));
+  if (!hintShown) { hintShown = true; showSwipeHint($('#topCard')); }
+}
+
+// Анимация-подсказка: карточка качается вправо (ДА) и влево (НЕТ)
+let hintShown = false;
+function showSwipeHint(card) {
+  if (matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+  setTimeout(() => {
+    if (!card.isConnected || busy) return;
+    card.classList.add('card--hint');
+    card.addEventListener('animationend', e => {
+      if (e.target === card) card.classList.remove('card--hint');
+    });
+  }, 600);
 }
 
 /* ================== ДА / НЕТ ================== */
@@ -319,6 +333,7 @@ function enableSwipe(card) {
   let startX = 0, startY = 0, dx = 0, dragging = false;
   card.addEventListener('pointerdown', e => {
     if (busy) return;
+    card.classList.remove('card--hint');
     dragging = true; startX = e.clientX; startY = e.clientY; dx = 0;
     card.setPointerCapture(e.pointerId);
     card.style.transition = 'none';
@@ -561,9 +576,13 @@ document.addEventListener('click', e => {
 });
 
 $('#resetSeen').addEventListener('click', () => {
-  if (!confirm('Сбросить просмотренные анкеты? Лайки и пары останутся.')) return;
-  state.seen = [];
-  save(); toast('Можно смотреть заново'); showView('feed');
+  openModal(`<div class="msg"><h3>Сбросить просмотренные анкеты?</h3>
+    <p class="muted">Лайки и пары останутся.</p>
+    <div class="form-actions"><button class="btn btn--ghost" data-close>Отмена</button><button class="btn" id="confirmReset">Сбросить</button></div></div>`);
+  $('#confirmReset').addEventListener('click', () => {
+    state.seen = [];
+    save(); closeModal(); toast('Можно смотреть заново'); showView('feed');
+  });
 });
 
 /* ================== СТАРТ ================== */

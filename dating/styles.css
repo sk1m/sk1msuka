@@ -12,10 +12,14 @@
   --shadow: 0 10px 30px rgba(40, 20, 70, .12);
 }
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --bg: #131118; --surface: #1e1b25; --text: #f2eff7; --muted: #9a94a6; --line: #2e2a37;
-    --shadow: 0 10px 30px rgba(0, 0, 0, .45);
+    --shadow: 0 10px 30px rgba(0, 0, 0, .45); color-scheme: dark;
   }
+}
+:root[data-theme="dark"] {
+  --bg: #131118; --surface: #1e1b25; --text: #f2eff7; --muted: #9a94a6; --line: #2e2a37;
+    --shadow: 0 10px 30px rgba(0, 0, 0, .45); color-scheme: dark;
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; }
@@ -23,6 +27,7 @@ body {
   font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   background: var(--bg); color: var(--text); line-height: 1.4;
   -webkit-tap-highlight-color: transparent;
+  overflow-x: clip;
 }
 button { font: inherit; cursor: pointer; color: inherit; }
 input, select, textarea { font: inherit; color: inherit; }
@@ -31,7 +36,7 @@ h2 { font-size: 20px; margin: 24px 0 12px; }
 
 /* ---------- шапка ---------- */
 .top {
-  position: sticky; top: 0; z-index: 10;
+  position: sticky; top: env(safe-area-inset-top, 0px); z-index: 10;
   background: color-mix(in srgb, var(--surface) 88%, transparent);
   backdrop-filter: blur(10px);
   border-bottom: 1px solid var(--line);
@@ -121,6 +126,20 @@ h2 { font-size: 20px; margin: 24px 0 12px; }
 .empty h3 { margin: 10px 0 4px; }
 .empty p { color: var(--muted); margin: 0 0 16px; }
 .empty__btns { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+
+/* подсказка свайпа */
+.card--hint { animation: hint 2.2s ease-in-out; }
+.card--hint .stamp--yes { animation: hintYes 2.2s ease-in-out; }
+.card--hint .stamp--no { animation: hintNo 2.2s ease-in-out; }
+@keyframes hint {
+  0%, 100% { transform: none; }
+  25% { transform: translateX(70px) rotate(6deg); }
+  50% { transform: none; }
+  75% { transform: translateX(-70px) rotate(-6deg); }
+}
+@keyframes hintYes { 0%, 50%, 100% { opacity: 0; } 25% { opacity: 1; } }
+@keyframes hintNo { 0%, 50%, 100% { opacity: 0; } 75% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .card, .act, .toast { transition: none !important; } }
 
 /* ---------- кнопки и формы ---------- */
 .btn {
