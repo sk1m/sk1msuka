@@ -82,6 +82,9 @@ h2 { font-size: 20px; margin: 24px 0 12px; }
 .card--static .card__photo { height: 300px; flex: none; }
 .ava { display: block; width: 100%; height: 100%; object-fit: cover; }
 .card__photo .ava { position: absolute; inset: 0; }
+.pic { position: relative; display: block; width: 100%; height: 100%; }
+.card__photo .pic { position: absolute; inset: 0; }
+.pic img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; pointer-events: none; user-select: none; }
 .card__photo svg { width: 100%; height: 100%; }
 .card__title {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 40px 16px 12px; color: #fff;

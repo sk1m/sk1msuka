@@ -68,6 +68,21 @@ const ABOUT = [
 const INTERESTS = ['спорт','музыка','кино','книги','игры','путешествия','танцы','кулинария','аниме','фото',
   'йога','бег','машины','искусство','театр','сериалы','походы','мода','животные','настолки'];
 
+// Демо-фото: стоковые портреты моделей с Unsplash (https://unsplash.com/license).
+// Параметры анкеты (волосы, глаза, рост) выдуманы и с фото не совпадают.
+// Если фото не загрузилось, вместо него остаётся нарисованный аватар.
+const PHOTOS = {
+  f: ['photo-1494790108377-be9c29b29330', 'photo-1438761681033-6461ffad8d80', 'photo-1534528741775-53994a69daeb',
+      'photo-1544005313-94ddf0286df2', 'photo-1517841905240-472988babdf9', 'photo-1524504388940-b1c1722653e1',
+      'photo-1529626455594-4ff0802cfb7e', 'photo-1488426862026-3ee34a7d66df', 'photo-1531123897727-8f129e1688ce',
+      'photo-1502823403499-6ccfcf4fb453', 'photo-1508214751196-bcfd4ca60f91', 'photo-1499952127939-9bbf5af6c51c'],
+  m: ['photo-1500648767791-00dcc994a43e', 'photo-1507003211169-0a1dd7228f2d', 'photo-1506794778202-cad84cf45f1d',
+      'photo-1539571696357-5a69c17a67c6', 'photo-1472099645785-5658abf4ff4e', 'photo-1519085360753-af0119f7cbe7',
+      'photo-1492562080023-ab3db95bfbce', 'photo-1504257432389-52343af06ae3', 'photo-1522075469751-3a6694fb2f61',
+      'photo-1463453091185-61582044d556', 'photo-1557862921-37829c790f19', 'photo-1488161628813-04466f872be2'],
+};
+const photoUrl = id => `https://images.unsplash.com/${id}?w=600&h=800&fit=crop&crop=faces&auto=format&q=70`;
+
 const STORE_KEY = 'dating_state_v1';
 const DEFAULT_FILTERS = {
   gender: 'f', ageMin: 18, ageMax: 35, heightMin: 140, heightMax: 210, weightMin: 40, weightMax: 130,
@@ -148,6 +163,9 @@ for (let i = PROFILES.length - 1; i > 0; i--) {
   [PROFILES[i], PROFILES[j]] = [PROFILES[j], PROFILES[i]];
 }
 const byId = Object.fromEntries(PROFILES.map(p => [p.id, p]));
+// раздаём фото по кругу в порядке ленты
+const photoIdx = { f: 0, m: 0 };
+PROFILES.forEach(p => { const pool = PHOTOS[p.gender]; p.photo = pool[photoIdx[p.gender]++ % pool.length]; });
 
 /* ================== АВАТАР (SVG) ================== */
 let svgSeq = 0;
@@ -185,6 +203,13 @@ function avatar(p) {
     <path d="M89 131 Q100 ${f ? 141 : 138} 111 131" stroke="${f ? '#c4505e' : '#7a3a2a'}" stroke-width="3" fill="none" stroke-linecap="round"/>
     ${f ? '<circle cx="74" cy="122" r="6" fill="#ff7b9c" opacity=".25"/><circle cx="126" cy="122" r="6" fill="#ff7b9c" opacity=".25"/>' : ''}
   </svg>`;
+}
+
+// Фото поверх нарисованного аватара; при ошибке загрузки фото убирается
+function pic(p) {
+  const img = p.photo
+    ? `<img src="${photoUrl(p.photo)}" alt="" loading="lazy" draggable="false" onerror="this.remove()">` : '';
+  return `<span class="pic">${avatar(p)}${img}</span>`;
 }
 
 /* ================== СОСТОЯНИЕ ================== */
@@ -245,7 +270,7 @@ function cardHtml(p, { full = false } = {}) {
     p.smoking && `🚬 ${label('smoking', p.smoking)}`, p.zodiac && `✨ ${label('zodiac', p.zodiac)}`,
   ].filter(Boolean);
   return `
-    <div class="card__photo">${avatar(p)}
+    <div class="card__photo">${pic(p)}
       <div class="card__title"><b>${esc(p.name)}${p.age ? `, ${p.age}` : ''}</b><span>📍 ${label('city', p.city)}</span></div>
     </div>
     <div class="card__body">
@@ -370,7 +395,7 @@ function showMatch(p) {
   const her = p.gender === 'f';
   openModal(`<div class="match">
     <div class="match__title">💞 Взаимная симпатия!</div>
-    <div class="match__ava">${avatar(p)}</div>
+    <div class="match__ava">${pic(p)}</div>
     <p><b>${esc(p.name)}</b> тоже ${her ? 'лайкнула' : 'лайкнул'} тебя. ${her ? 'Напиши ей' : 'Напиши ему'} первым(ой)!</p>
     <div class="form-actions"><button class="btn btn--ghost" data-close>Смотреть дальше</button><button class="btn" data-go="matches" data-close>К парам</button></div>
   </div>`);
@@ -415,7 +440,7 @@ function renderBadges() {
 }
 function miniHtml(p) {
   return `<button class="mini" data-open="${p.id}">
-    <span class="mini__ava">${avatar(p)}</span>
+    <span class="mini__ava">${pic(p)}</span>
     <span class="mini__info"><b>${esc(p.name)}, ${p.age}</b><small>${label('city', p.city)} · ${p.height} см · ${label('hair', p.hair).toLowerCase()}</small></span>
     ${state.messages[p.id] ? '<span class="mini__msg" title="Есть сообщение">💌</span>' : ''}
   </button>`;
