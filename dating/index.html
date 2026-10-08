@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <title>Знакомства — поиск по критериям</title>
+  <meta name="description" content="Знакомства в стиле «да / нет»: ищи девушек и парней по росту, весу, цвету волос, глаз и другим критериям.">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="logo">💘 Знакомства</div>
+  <nav class="tabs" id="tabs">
+    <button class="tab is-active" data-view="feed">Анкеты</button>
+    <button class="tab" data-view="filters">Фильтры</button>
+    <button class="tab" data-view="matches">Пары <span class="badge" id="matchCount">0</span></button>
+    <button class="tab" data-view="profile">Моя анкета</button>
+  </nav>
+</header>
+
+<main class="wrap">
+
+  <!-- ЛЕНТА -->
+  <section class="view is-active" id="view-feed">
+    <div class="feed-head">
+      <div class="seg" id="genderSwitch">
+        <button data-gender="f">👩 Девушки</button>
+        <button data-gender="m">👨 Парни</button>
+      </div>
+      <div class="found" id="foundInfo"></div>
+    </div>
+
+    <div class="stage" id="stage">
+      <!-- карточка рендерится из app.js -->
+    </div>
+
+    <div class="actions" id="actions">
+      <button class="act act--no" id="btnNo" title="Нет (←)">👎</button>
+      <button class="act act--msg" id="btnMsg" title="Лайк с сообщением">💌</button>
+      <button class="act act--yes" id="btnYes" title="Да (→)">❤️</button>
+    </div>
+    <p class="hint">Свайпай карточку или жми ← / → на клавиатуре</p>
+  </section>
+
+  <!-- ФИЛЬТРЫ -->
+  <section class="view" id="view-filters">
+    <h2>Кого ищем</h2>
+    <form id="filterForm" class="filters">
+      <div class="field">
+        <label>Пол</label>
+        <div class="seg seg--form">
+          <label><input type="radio" name="gender" value="f"> <span>Девушки</span></label>
+          <label><input type="radio" name="gender" value="m"> <span>Парни</span></label>
+        </div>
+      </div>
+
+      <div class="field range">
+        <label>Возраст: <b id="ageOut"></b></label>
+        <div class="pair"><input type="number" name="ageMin" min="18" max="60"> — <input type="number" name="ageMax" min="18" max="60"></div>
+      </div>
+      <div class="field range">
+        <label>Рост, см: <b id="heightOut"></b></label>
+        <div class="pair"><input type="number" name="heightMin" min="140" max="210"> — <input type="number" name="heightMax" min="140" max="210"></div>
+      </div>
+      <div class="field range">
+        <label>Вес, кг: <b id="weightOut"></b></label>
+        <div class="pair"><input type="number" name="weightMin" min="40" max="130"> — <input type="number" name="weightMax" min="40" max="130"></div>
+      </div>
+
+      <div class="field"><label>Цвет волос</label><div class="chips" data-group="hair"></div></div>
+      <div class="field"><label>Цвет глаз</label><div class="chips" data-group="eyes"></div></div>
+      <div class="field"><label>Телосложение</label><div class="chips" data-group="body"></div></div>
+      <div class="field"><label>Город</label><div class="chips" data-group="city"></div></div>
+      <div class="field"><label>Цель знакомства</label><div class="chips" data-group="goal"></div></div>
+      <div class="field"><label>Отношение к курению</label><div class="chips" data-group="smoking"></div></div>
+      <div class="field"><label>Знак зодиака</label><div class="chips" data-group="zodiac"></div></div>
+
+      <p class="muted">Ничего не выбрано в группе = подходит любой вариант.</p>
+
+      <div class="form-actions">
+        <button type="button" class="btn btn--ghost" id="filterReset">Сбросить</button>
+        <button type="submit" class="btn">Показать анкеты (<span id="filterCount">0</span>)</button>
+      </div>
+    </form>
+  </section>
+
+  <!-- ПАРЫ -->
+  <section class="view" id="view-matches">
+    <h2>Взаимные симпатии</h2>
+    <div class="list" id="matchList"></div>
+    <h2>Ты лайкнул(а)</h2>
+    <div class="list" id="likeList"></div>
+    <button class="btn btn--ghost" id="resetSeen">Начать заново (сбросить просмотренные)</button>
+  </section>
+
+  <!-- МОЯ АНКЕТА -->
+  <section class="view" id="view-profile">
+    <h2>Моя анкета</h2>
+    <form id="profileForm" class="filters">
+      <div class="field"><label>Имя</label><input name="name" required maxlength="30" placeholder="Как тебя зовут"></div>
+      <div class="field">
+        <label>Я</label>
+        <div class="seg seg--form">
+          <label><input type="radio" name="gender" value="f" required> <span>Девушка</span></label>
+          <label><input type="radio" name="gender" value="m"> <span>Парень</span></label>
+        </div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Возраст</label><input type="number" name="age" min="18" max="99" required></div>
+        <div class="field"><label>Рост, см</label><input type="number" name="height" min="120" max="230"></div>
+        <div class="field"><label>Вес, кг</label><input type="number" name="weight" min="35" max="200"></div>
+      </div>
+      <div class="grid3">
+        <div class="field"><label>Волосы</label><select name="hair" data-options="hair"></select></div>
+        <div class="field"><label>Глаза</label><select name="eyes" data-options="eyes"></select></div>
+        <div class="field"><label>Город</label><select name="city" data-options="city"></select></div>
+      </div>
+      <div class="field"><label>О себе</label><textarea name="about" rows="3" maxlength="300" placeholder="Пара слов о себе"></textarea></div>
+      <div class="form-actions">
+        <button type="submit" class="btn">Сохранить</button>
+      </div>
+    </form>
+    <div id="profilePreview"></div>
+  </section>
+
+</main>
+
+<!-- модалки -->
+<div class="modal" id="modal" hidden>
+  <div class="modal__box" id="modalBox"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="app.js"></script>
+</body>
+</html>
