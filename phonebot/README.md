@@ -38,21 +38,15 @@
 > и впиши свой Telegram ID в `ADMIN_IDS`: тогда в админку не пустит никого, кроме тебя.
 
 ## Запуск
+Подробная пошаговая инструкция — в файле **[ИНСТРУКЦИЯ.txt](ИНСТРУКЦИЯ.txt)**. Коротко:
 1. Создай бота у [@BotFather](https://t.me/BotFather) (`/newbot`) и возьми токен.
 2. Узнай свой Telegram ID у [@userinfobot](https://t.me/userinfobot).
-3. Установи Python 3.10+ с [python.org](https://www.python.org/downloads/) (на Windows поставь галочку «Add Python to PATH»).
-4. В папке `phonebot` выполни:
-   ```bash
-   python -m venv .venv
-   .venv\Scripts\activate          # Mac/Linux: source .venv/bin/activate
-   pip install -r requirements.txt
-   copy .env.example .env          # Mac/Linux: cp .env.example .env
-   ```
-5. Открой `.env` и впиши `BOT_TOKEN`, `ADMIN_PASSWORD`, `ADMIN_IDS`.
-6. Запусти: `python bot.py`. Когда появится `Start polling`, бот работает.
+3. Установи Python 3.10+ с [python.org](https://www.python.org/downloads/) (на Windows — галочка «Add Python to PATH»).
+4. Запусти **`start.bat`** (Windows) или **`./start.sh`** (Mac/Linux). При первом запуске скрипт сам установит
+   зависимости и мастер настройки спросит токен, пароль админки, твой ID и ник.
 
-Бот отвечает, пока запущен скрипт. Чтобы он работал круглосуточно, его нужно держать на компьютере,
-который не выключается, или на сервере (см. ниже).
+Бот отвечает, пока открыто окно. Для круглосуточной работы загрузи папку на сервер Ubuntu и выполни
+`bash server_install.sh` — он всё установит и включит автозапуск.
 
 ## Настройки (`.env`)
 | Переменная | Что это |
@@ -65,22 +59,8 @@
 
 ## Круглосуточная работа на сервере (Ubuntu)
 ```bash
-apt update && apt install -y python3-venv
-cd /root/phonebot && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt
-cat > /etc/systemd/system/phonebot.service <<'UNIT'
-[Unit]
-Description=PhoneBot
-After=network-online.target
-
-[Service]
-WorkingDirectory=/root/phonebot
-ExecStart=/root/phonebot/.venv/bin/python bot.py
-Restart=always
-
-[Install]
-WantedBy=multi-user.target
-UNIT
-systemctl enable --now phonebot
+cd /root/phonebot
+bash server_install.sh
 ```
 Логи: `journalctl -u phonebot -f`. Перезапуск после правки `.env`: `systemctl restart phonebot`.
 

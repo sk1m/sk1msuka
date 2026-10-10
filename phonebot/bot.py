@@ -429,12 +429,19 @@ async def main():
     logging.basicConfig(level=logging.INFO)
     token = os.getenv("BOT_TOKEN")
     if not token:
-        raise SystemExit("Укажи BOT_TOKEN в файле .env (см. .env.example)")
+        raise SystemExit("❌ Не найден BOT_TOKEN. Запусти start.bat / start.sh — мастер настройки спросит токен.")
     if ADMIN_PASSWORD == "1234":
         logging.warning("Пароль админки 1234 — его легко подобрать. Поменяй ADMIN_PASSWORD в .env и укажи ADMIN_IDS.")
     bot = Bot(token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher()
     dp.include_router(router)
+    try:
+        await setup_and_poll(bot, dp)
+    finally:
+        await bot.session.close()
+
+
+async def setup_and_poll(bot: Bot, dp: Dispatcher):
     # меню команд внизу слева в Telegram
     await bot.set_my_commands([
         BotCommand(command="start", description="Главное меню"),
@@ -447,5 +454,19 @@ async def main():
     await dp.start_polling(bot)
 
 
+def run():
+    from aiogram.exceptions import TelegramNetworkError, TelegramUnauthorizedError
+    from aiogram.utils.token import TokenValidationError
+    try:
+        asyncio.run(main())
+    except (TokenValidationError, TelegramUnauthorizedError):
+        raise SystemExit("❌ Telegram не принял токен. Проверь BOT_TOKEN в файле .env "
+                         "(скопируй заново у @BotFather командой /mybots → бот → API Token).")
+    except TelegramNetworkError:
+        raise SystemExit("❌ Нет связи с Telegram. Проверь интернет (в России может понадобиться VPN или сервер за границей).")
+    except KeyboardInterrupt:
+        print("Бот остановлен.")
+
+
 if __name__ == "__main__":
-    asyncio.run(main())
+    run()
