@@ -33,7 +33,7 @@ def load_env(path: str = ".env"):
 load_env()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "1234")
 ADMIN_IDS = {int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x}
-OWNER_CONTACT = os.getenv("OWNER_CONTACT", "@your_username")
+OWNER_CONTACT = os.getenv("OWNER_CONTACT", "@skimsuka")
 DAILY_LIMIT = int(os.getenv("DAILY_LIMIT", "50"))
 MAX_ATTEMPTS, LOCK_SECONDS = 5, 15 * 60  # защита от подбора пароля админки
 HISTORY_TURNS = 6                          # сколько последних сообщений помнит AI

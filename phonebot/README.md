@@ -52,7 +52,7 @@
 | `ANTHROPIC_API_KEY` | ключ Claude API |
 | `ADMIN_PASSWORD` | пароль админки |
 | `ADMIN_IDS` | твой Telegram ID (через запятую, если несколько) |
-| `OWNER_CONTACT` | твой ник, куда писать за кодом |
+| `OWNER_CONTACT` | ник, куда писать за кодом (по умолчанию @skimsuka) |
 | `DAILY_LIMIT` | AI-запросов в сутки на подписчика (по умолчанию 50) |
 | `DB_PATH` | файл базы SQLite |
 
