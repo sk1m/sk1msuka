@@ -1,4 +1,4 @@
-"""Telegram-бот: AI-сравнение телефонов по подписке с кодами активации и админ-панелью."""
+"""Telegram-бот: сравнение техники Apple по подписке с кодами активации и админ-панелью."""
 import asyncio
 import html
 import logging
@@ -8,14 +8,14 @@ from datetime import datetime
 
 from aiogram import Bot, Dispatcher, F, Router
 from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ChatAction, ParseMode
+from aiogram.enums import ParseMode
 from aiogram.filters import Command, CommandStart
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import (BotCommand, CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup,
                            KeyboardButton, Message, ReplyKeyboardMarkup)
 
-from ai import PhoneAI
+import products as P
 from db import DB, FOREVER
 
 
@@ -34,19 +34,14 @@ load_env()
 ADMIN_PASSWORD = os.getenv("ADMIN_PASSWORD", "1234")
 ADMIN_IDS = {int(x) for x in os.getenv("ADMIN_IDS", "").replace(" ", "").split(",") if x}
 OWNER_CONTACT = os.getenv("OWNER_CONTACT", "@skimsuka")
-DAILY_LIMIT = int(os.getenv("DAILY_LIMIT", "50"))
 MAX_ATTEMPTS, LOCK_SECONDS = 5, 15 * 60  # защита от подбора пароля админки
-HISTORY_TURNS = 6                          # сколько последних сообщений помнит AI
 
 db = DB(os.getenv("DB_PATH", "phonebot.db"))
-ai = PhoneAI()
 router = Router()
 
-history: dict[int, list[dict]] = {}       # память диалога по пользователю
-busy: set[int] = set()                     # у кого AI сейчас отвечает
 attempts: dict[int, list[float]] = {}      # неудачные попытки входа в админку
 
-BTN_COMPARE = "📱 Сравнить телефоны"
+BTN_COMPARE = "⚖️ Сравнить технику Apple"
 BTN_CODE = "🔑 Ввести код"
 BTN_STATUS = "👤 Моя подписка"
 BTN_BUY = "💳 Купить код"
@@ -73,7 +68,7 @@ def main_kb(user_id: int) -> ReplyKeyboardMarkup:
     rows = [[KeyboardButton(text=BTN_COMPARE)],
             [KeyboardButton(text=BTN_CODE), KeyboardButton(text=BTN_STATUS)],
             [KeyboardButton(text=BTN_BUY), KeyboardButton(text=BTN_ADMIN)]]
-    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, input_field_placeholder="Например: iPhone 16 vs Galaxy S25")
+    return ReplyKeyboardMarkup(keyboard=rows, resize_keyboard=True, input_field_placeholder="Например: iPhone 15 vs 16 Pro")
 
 
 def owner_url() -> str | None:
@@ -128,16 +123,6 @@ async def notify_admins(bot: Bot, text: str):
             logging.warning("Не удалось уведомить админа %s", admin_id)
 
 
-async def send_long(message: Message, text: str):
-    """Telegram режет сообщения длиннее 4096 символов — делим по абзацам."""
-    while text:
-        part = text[:4000]
-        if len(text) > 4000 and "\n" in part:
-            part = part[:part.rfind("\n")]
-        await message.answer(part, parse_mode=None)
-        text = text[len(part):].lstrip()
-
-
 # ================= общие команды =================
 @router.message.middleware()
 async def remember_user(handler, event: Message, data):
@@ -153,8 +138,8 @@ async def start(message: Message, state: FSMContext):
     status = "✅ Подписка активна" if has_access(uid) else "⛔ Подписка не активна"
     await message.answer(
         f"Привет, {html.escape(message.from_user.first_name or 'друг')}! 👋\n\n"
-        "Я AI-бот, который сравнивает телефоны по характеристикам: процессор, камеры, экран, батарея, цена.\n"
-        "Просто напиши, например: <i>iPhone 16 Pro или Galaxy S25 Ultra?</i>\n\n"
+        "Я сравниваю технику Apple по характеристикам: iPhone, iPad, Mac, Apple Watch и AirPods.\n"
+        "Нажми «⚖️ Сравнить» или просто напиши, например: <i>iPhone 15 vs 16 Pro</i> или <i>MacBook Air M2 или M4</i>\n\n"
         f"{status}",
         reply_markup=main_kb(uid),
     )
@@ -189,12 +174,6 @@ async def buy(message: Message):
     await notify_admins(message.bot, f"💳 Хочет купить код: {name} (<code>{u.id}</code>)")
 
 
-@router.message(Command("new"))
-async def new_chat(message: Message):
-    history.pop(message.from_user.id, None)
-    await message.answer("🧹 Начали новый диалог. Какие телефоны сравним?")
-
-
 # ================= ввод кода =================
 @router.message(Command("code"))
 @router.message(F.text == BTN_CODE)
@@ -218,9 +197,8 @@ async def got_code(message: Message, state: FSMContext):
         await message.answer("❌ Код неверный или уже использован. Проверь и попробуй ещё раз, или нажми /start.")
         return
     await state.clear()
-    history.pop(uid, None)
     await message.answer(
-        f"✅ <b>Подписка активна</b> {fmt_until(until)}\n\nТеперь бот работает. Напиши, какие телефоны сравнить 📱",
+        f"✅ <b>Подписка активна</b> {fmt_until(until)}\n\nТеперь бот работает. Нажми «⚖️ Сравнить» или напиши модели 📱",
         reply_markup=main_kb(uid),
     )
     u = message.from_user
@@ -310,7 +288,7 @@ async def admin_action(cb: CallbackQuery, state: FSMContext):
             "📊 <b>Статистика</b>\n\n"
             f"Пользователей: {s['users']}\nАктивных подписок: {s['active']}\n"
             f"Кодов свободно: {s['codes_free']} · использовано: {s['codes_used']}\n"
-            f"AI-запросов сегодня: {s['requests_today']} · всего: {s['requests_total']}",
+            f"Сравнений сегодня: {s['requests_today']} · всего: {s['requests_total']}",
             reply_markup=_back(),
         )
     elif action[0] == "revoke":
@@ -338,54 +316,108 @@ async def revoke(message: Message, state: FSMContext):
     await message.answer("✅ Подписка отключена." if ok else "Пользователь не найден.", reply_markup=admin_kb())
 
 
-# ================= сравнение телефонов =================
+# ================= сравнение =================
+def cats_kb() -> InlineKeyboardMarkup:
+    b = InlineKeyboardButton
+    items = list(P.CATEGORIES.items())
+    rows = [[b(text=t, callback_data=f"cat:{c}") for c, t in items[i:i + 2]] for i in range(0, len(items), 2)]
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def models_kb(cat: str, exclude: list[int]) -> InlineKeyboardMarkup:
+    b = InlineKeyboardButton
+    btns = [b(text=p["name"], callback_data=f"pick:{p['id']}") for p in P.by_cat(cat) if p["id"] not in exclude]
+    rows = [btns[i:i + 2] for i in range(0, len(btns), 2)]
+    rows.append([b(text="← Категории", callback_data="cmp:cats")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def after_compare_kb(can_add: bool) -> InlineKeyboardMarkup:
+    b = InlineKeyboardButton
+    rows = [[b(text="➕ Добавить третье", callback_data="cmp:add")]] if can_add else []
+    rows.append([b(text="🔁 Новое сравнение", callback_data="cmp:new")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
+
+
+def pick_prompt(picks: list[int]) -> str:
+    if not picks:
+        return "⚖️ Выбери категорию <b>первого</b> устройства:"
+    chosen = ", ".join(P.PRODUCTS[i]["name"] for i in picks)
+    return f"Выбрано: <b>{chosen}</b>\n\nТеперь выбери категорию следующего устройства (можно сравнивать и разные, например iPhone с iPad):"
+
+
+async def show_result(message: Message, state: FSMContext, picks: list[int]):
+    items = [P.PRODUCTS[i] for i in picks]
+    db.count_request(message.chat.id, 0)
+    await message.answer(P.compare(items), reply_markup=after_compare_kb(len(items) < 3))
+    await state.update_data(picks=picks)
+
+
 @router.message(Command("compare"))
 @router.message(F.text == BTN_COMPARE)
-async def compare_hint(message: Message):
+async def compare_start(message: Message, state: FSMContext):
     if not has_access(message.from_user.id):
         await message.answer(LOCKED_TEXT.format(owner=OWNER_CONTACT), reply_markup=locked_kb())
         return
-    await message.answer(
-        "📱 Напиши модели, которые сравнить. Примеры:\n"
-        "• iPhone 16 Pro vs Galaxy S25 Ultra\n"
-        "• Что лучше по камере: Pixel 9 или Xiaomi 15?\n"
-        "• Телефон до 30 000 ₽ с хорошей батареей\n\n"
-        "Можно задавать уточняющие вопросы. Новый диалог: /new"
-    )
+    await state.update_data(picks=[])
+    await message.answer(pick_prompt([]), reply_markup=cats_kb())
+
+
+@router.callback_query(F.data.startswith(("cat:", "pick:", "cmp:")))
+async def compare_buttons(cb: CallbackQuery, state: FSMContext):
+    if not has_access(cb.from_user.id):
+        await cb.message.answer(LOCKED_TEXT.format(owner=OWNER_CONTACT), reply_markup=locked_kb())
+        await cb.answer()
+        return
+    picks = (await state.get_data()).get("picks", [])
+    kind, _, value = cb.data.partition(":")
+    if kind == "cat":
+        await cb.message.edit_text(f"{P.CATEGORIES[value]} — выбери модель:", reply_markup=models_kb(value, picks))
+    elif kind == "pick":
+        pid = int(value)
+        if pid not in picks:
+            picks = picks + [pid]
+        await state.update_data(picks=picks)
+        if len(picks) >= 2:
+            await cb.message.delete()
+            await show_result(cb.message, state, picks)
+        else:
+            await cb.message.edit_text(pick_prompt(picks), reply_markup=cats_kb())
+    elif value == "cats":
+        await cb.message.edit_text(pick_prompt(picks), reply_markup=cats_kb())
+    elif value == "add":
+        await cb.message.answer(pick_prompt(picks), reply_markup=cats_kb())
+    elif value == "new":
+        await state.update_data(picks=[])
+        await cb.message.answer(pick_prompt([]), reply_markup=cats_kb())
+    await cb.answer()
 
 
 @router.message(F.text & ~F.text.startswith("/"))
-async def ask_ai(message: Message):
+async def compare_text(message: Message, state: FSMContext):
     uid = message.from_user.id
     if not has_access(uid):
         await message.answer(LOCKED_TEXT.format(owner=OWNER_CONTACT), reply_markup=locked_kb())
         return
-    if uid in busy:
-        await message.answer("⏳ Ещё отвечаю на прошлый вопрос, подожди немного.")
-        return
-    if not db.is_admin(uid) and not db.count_request(uid, DAILY_LIMIT):
-        await message.answer(f"Лимит {DAILY_LIMIT} запросов в сутки исчерпан. Возвращайся завтра 🙂")
-        return
-    if db.is_admin(uid):
-        db.count_request(uid, 0)
-
-    busy.add(uid)
-    try:
-        await message.bot.send_chat_action(message.chat.id, ChatAction.TYPING)
-        await message.answer("🔎 Сравниваю, это займёт до минуты…")
-        turns = history.setdefault(uid, [])
-        turns.append({"role": "user", "content": message.text[:2000]})
-        answer = await ai.answer(turns[-HISTORY_TURNS:])
-        turns.append({"role": "assistant", "content": answer})
-        del turns[:-HISTORY_TURNS]
-        await send_long(message, answer)
-    finally:
-        busy.discard(uid)
+    found = P.find_many(message.text)
+    if len(found) >= 2:
+        await show_result(message, state, [p["id"] for p in found[:3]])
+    elif len(found) == 1:
+        p = found[0]
+        await state.update_data(picks=[p["id"]])
+        kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="⚖️ Сравнить с…", callback_data="cmp:cats")]])
+        await message.answer(P.card(p), reply_markup=kb)
+    else:
+        await message.answer(
+            "🤔 Не нашёл такую модель. Напиши, например:\n"
+            "• iPhone 15 vs 16 Pro\n• MacBook Air M2 или M4\n• iPad Pro M4 13 vs iPad Air M3 13\n"
+            "• AirPods Pro 2 vs Pro 3\n\nИли нажми «⚖️ Сравнить» и выбери кнопками.",
+        )
 
 
 @router.message()
 async def other(message: Message):
-    await message.answer("Я понимаю только текст. Напиши, какие телефоны сравнить 📱")
+    await message.answer("Я понимаю только текст. Напиши, какие модели сравнить 📱")
 
 
 # ================= запуск =================
@@ -402,11 +434,10 @@ async def main():
     # меню команд внизу слева в Telegram
     await bot.set_my_commands([
         BotCommand(command="start", description="Главное меню"),
-        BotCommand(command="compare", description="Сравнить телефоны"),
+        BotCommand(command="compare", description="Сравнить технику Apple"),
         BotCommand(command="code", description="Ввести код активации"),
         BotCommand(command="status", description="Моя подписка"),
         BotCommand(command="buy", description="Купить код"),
-        BotCommand(command="new", description="Новый диалог"),
         BotCommand(command="admin", description="Админ-панель"),
     ])
     await dp.start_polling(bot)
