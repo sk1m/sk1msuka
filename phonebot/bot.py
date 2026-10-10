@@ -1,4 +1,4 @@
-"""Telegram-бот: сравнение техники Apple по подписке с кодами активации и админ-панелью."""
+"""Telegram-бот: сравнение техники Apple, Samsung и Xiaomi по подписке с кодами активации и админ-панелью."""
 import asyncio
 import html
 import logging
@@ -41,7 +41,7 @@ router = Router()
 
 attempts: dict[int, list[float]] = {}      # неудачные попытки входа в админку
 
-BTN_COMPARE = "⚖️ Сравнить технику Apple"
+BTN_COMPARE = "⚖️ Сравнить технику"
 BTN_CODE = "🔑 Ввести код"
 BTN_STATUS = "👤 Моя подписка"
 BTN_BUY = "💳 Купить код"
@@ -138,8 +138,11 @@ async def start(message: Message, state: FSMContext):
     status = "✅ Подписка активна" if has_access(uid) else "⛔ Подписка не активна"
     await message.answer(
         f"Привет, {html.escape(message.from_user.first_name or 'друг')}! 👋\n\n"
-        "Я сравниваю технику Apple по характеристикам: iPhone, iPad, Mac, Apple Watch и AirPods.\n"
-        "Нажми «⚖️ Сравнить» или просто напиши, например: <i>iPhone 15 vs 16 Pro</i> или <i>MacBook Air M2 или M4</i>\n\n"
+        "Я сравниваю технику по характеристикам:\n"
+        "🍏 Apple — iPhone, iPad, Mac, Apple Watch, AirPods\n"
+        "🌌 Samsung — Galaxy S, Z Fold/Flip, A, Tab, Watch, Buds\n"
+        "🟠 Xiaomi — Xiaomi, Redmi, POCO, Xiaomi Pad\n\n"
+        "Нажми «⚖️ Сравнить технику» или просто напиши, например: <i>iPhone 16 Pro vs Galaxy S25 Ultra</i> или <i>Redmi Note 13 или 14</i>\n\n"
         f"{status}",
         reply_markup=main_kb(uid),
     )
@@ -410,8 +413,9 @@ async def compare_text(message: Message, state: FSMContext):
     else:
         await message.answer(
             "🤔 Не нашёл такую модель. Напиши, например:\n"
-            "• iPhone 15 vs 16 Pro\n• MacBook Air M2 или M4\n• iPad Pro M4 13 vs iPad Air M3 13\n"
-            "• AirPods Pro 2 vs Pro 3\n\nИли нажми «⚖️ Сравнить» и выбери кнопками.",
+            "• iPhone 15 vs 16 Pro\n• Galaxy S25 Ultra или iPhone 17 Pro Max\n• Xiaomi 14 vs 15\n"
+            "• Redmi Note 13 Pro или POCO X7 Pro\n• MacBook Air M2 или M4\n\n"
+            "Или нажми «⚖️ Сравнить технику» и выбери кнопками. Если модели нет в базе, напиши @skimsuka.",
         )
 
 
@@ -434,7 +438,7 @@ async def main():
     # меню команд внизу слева в Telegram
     await bot.set_my_commands([
         BotCommand(command="start", description="Главное меню"),
-        BotCommand(command="compare", description="Сравнить технику Apple"),
+        BotCommand(command="compare", description="Сравнить технику"),
         BotCommand(command="code", description="Ввести код активации"),
         BotCommand(command="status", description="Моя подписка"),
         BotCommand(command="buy", description="Купить код"),

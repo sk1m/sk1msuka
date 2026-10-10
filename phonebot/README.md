@@ -1,17 +1,25 @@
-# PhoneBot — сравнение техники Apple в Telegram
+# PhoneBot — сравнение техники Apple, Samsung и Xiaomi в Telegram
 
-Бот сравнивает iPhone, iPad, Mac, Apple Watch и AirPods по характеристикам.
+Бот сравнивает смартфоны, планшеты, ноутбуки, часы и наушники Apple, Samsung и Xiaomi по характеристикам.
 Работает **бесплатно**: без AI и платных сервисов, все данные лежат внутри бота (`products.py`).
 Пользоваться ботом можно только по подписке: без кода активации доступ закрыт.
 
 ## Что умеет
 - Сравнивать 2–3 устройства: по каждой характеристике ✅ у лучшего значения и итог в конце.
-- Выбор кнопками (категория → модель) или текстом: «iPhone 15 vs 16 Pro», «макбук эйр м1 или м4», «AirPods Pro 2 vs Pro 3».
+- Выбор кнопками (категория → модель) или текстом: «iPhone 16 Pro vs Galaxy S25 Ultra», «галакси с24 или с25», «редми ноут 13 или 14», «макбук эйр м1 или м4».
 - Карточка одной модели, если написать только её («айфон 17 про макс»).
-- Можно сравнивать разные категории, например iPhone с iPad: тогда показываются общие характеристики.
+- Можно сравнивать разные бренды и категории, например iPhone с Galaxy или iPad с Xiaomi Pad: тогда показываются общие характеристики.
 
-В базе 90 устройств: iPhone с XR (2018) до 17 Pro Max и Air, iPad (обычные, mini, Air, Pro),
-MacBook Air и Pro от M1 до M5, iMac, Mac mini, Mac Studio, Apple Watch SE / Series 9–11 / Ultra 2–3, AirPods 4 / Pro 2 / Pro 3 / Max.
+В базе 184 устройства:
+- **Apple:** iPhone с XR (2018) до 17 Pro Max и Air, iPad (обычные, mini, Air, Pro), MacBook Air и Pro от M1 до M5,
+  iMac, Mac mini, Mac Studio, Apple Watch SE / Series 9–11 / Ultra 2–3, AirPods 4 / Pro 2 / Pro 3 / Max.
+- **Samsung:** Galaxy S21–S25 (включая +, Ultra, FE, Edge), Z Fold3–Fold7 и Z Flip3–Flip7 FE, популярные A (A15–A54),
+  Galaxy Tab A9+ / S9 / S10 / S11, Galaxy Watch6–Watch8 / Ultra / FE, Galaxy Buds2 Pro / FE / Buds3 / Buds3 Pro.
+- **Xiaomi:** Xiaomi 13–15 (Pro, Ultra, T, T Pro), Redmi Note 12–14 (Pro, Pro+), POCO F5–F7 и X6 Pro / X7 Pro,
+  Xiaomi Pad 6 / 7 / 7 Pro, Redmi Pad SE.
+
+Цены: Apple и Samsung — стартовые в США ($), Xiaomi — стартовые в Европе (€), так как в США Xiaomi официально не продаётся.
+У Redmi, POCO и Xiaomi Pad цены не указаны: они сильно отличаются по странам.
 
 ## Как работает подписка
 1. Человек запускает бота и видит «⛔ Подписка не активна» и кнопку «💬 Купить код у @skimsuka».
@@ -77,11 +85,11 @@ systemctl enable --now phonebot
 Логи: `journalctl -u phonebot -f`. Перезапуск после правки `.env`: `systemctl restart phonebot`.
 
 ## Как добавить устройство
-Открой `products.py` и допиши строку в нужный раздел по образцу соседних, например для iPhone:
+Открой `products.py` и допиши строку в нужный раздел по образцу соседних (Samsung и Xiaomi — внизу файла), например для iPhone:
 ```python
 _iphone("iPhone 18", 2026, "A20", '6,3" OLED 120 Гц ProMotion', "48 Мп + 48 Мп ширик", "18 Мп", 30,
         "256/512 ГБ", 177, "Face ID", "USB-C (USB 2)", 799, "что нового"),
 ```
 Перезапусти бота, и модель появится в кнопках и поиске.
 
-Данные взяты из официальных характеристик Apple на момент выхода. Цены стартовые, в долларах США.
+Данные взяты из официальных характеристик производителей на момент выхода устройств.
